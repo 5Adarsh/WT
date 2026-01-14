@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shopping Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+}
+
+.container {
+    max-width: 420px;
+    margin: 60px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 6px;
+}
+
+.dashboard {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.hidden { display: none; }
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover { background: #1d4ed8; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.card {
+    background: #f1f5f9;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.book { background: #16a34a; }
+.delete { background: #dc2626; }
+
+.flex {
+    display: flex;
+    gap: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="container" id="loginBox">
+    <h2>Login</h2>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p onclick="showSignup()" style="cursor:pointer;color:blue">Create account</p>
+</div>
+
+<!-- SIGNUP -->
+<div class="container hidden" id="signupBox">
+    <h2>Signup</h2>
+    <input id="signupUser" placeholder="Username">
+    <input id="signupPass" type="password" placeholder="Password">
+    <button onclick="signup()">Signup</button>
+    <p onclick="showLogin()" style="cursor:pointer;color:blue">Back to login</p>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard hidden" id="dashboard">
+
+<h2>➕ Add New Item</h2>
+<input id="newItemName" placeholder="Item Name">
+<input id="newItemPrice" type="number" placeholder="Price">
+<button onclick="addItem()">Add Item</button>
+
+<hr>
+
+<h2>🛍 Items</h2>
+<div class="grid" id="itemList"></div>
+
+<hr>
+
+<h2>🛒 Cart</h2>
+<div class="grid" id="cartList"></div>
+
+<button class="delete" onclick="logout()">Logout</button>
+</div>
+
+<script>
+// =====================
+// DATA
+// =====================
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let items = JSON.parse(localStorage.getItem("items")) || [
+    { id: 1, name: "Laptop", price: 55000 },
+    { id: 2, name: "Mobile", price: 18000 },
+    { id: 3, name: "Headphones", price: 2500 }
+];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let currentUser = localStorage.getItem("currentUser");
+
+// =====================
+// PAGE CONTROL
+// =====================
+if (currentUser) showDashboard();
+
+function showSignup() {
+    loginBox.classList.add("hidden");
+    signupBox.classList.remove("hidden");
+}
+
+function showLogin() {
+    signupBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+}
+
+function showDashboard() {
+    loginBox.classList.add("hidden");
+    signupBox.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    renderItems();
+    renderCart();
+}
+
+// =====================
+// AUTH
+// =====================
+function signup() {
+    users.push({ user: signupUser.value, pass: signupPass.value });
+    localStorage.setItem("users", JSON.stringify(users));
+    alert("Signup successful");
+    showLogin();
+}
+
+function login() {
+    let found = users.find(
+        u => u.user === loginUser.value && u.pass === loginPass.value
+    );
+    if (!found) return alert("Invalid credentials");
+
+    localStorage.setItem("currentUser", found.user);
+    currentUser = found.user;
+    showDashboard();
+}
+
+function logout() {
+    localStorage.removeItem("currentUser");
+    location.reload();
+}
+
+// =====================
+// ADD ITEM
+// =====================
+function addItem() {
+    if (!newItemName.value || !newItemPrice.value)
+        return alert("Fill all fields");
+
+    items.push({
+        id: Date.now(),
+        name: newItemName.value,
+        price: newItemPrice.value
+    });
+
+    localStorage.setItem("items", JSON.stringify(items));
+    newItemName.value = "";
+    newItemPrice.value = "";
+    renderItems();
+}
+
+// =====================
+// ITEMS
+// =====================
+function renderItems() {
+    itemList.innerHTML = "";
+    items.forEach(item => {
+        itemList.innerHTML += `
+        <div class="card">
+            <b>${item.name}</b><br>
+            ₹${item.price}
+            <div class="flex">
+                <button class="book" onclick="addToCart(${item.id})">Book</button>
+                <button class="delete" onclick="deleteItem(${item.id})">Delete</button>
+            </div>
+        </div>`;
+    });
+}
+
+function deleteItem(id) {
+    items = items.filter(i => i.id !== id);
+    cart = cart.filter(c => c.id !== id);
+    localStorage.setItem("items", JSON.stringify(items));
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderItems();
+    renderCart();
+}
+
+// =====================
+// CART
+// =====================
+function addToCart(id) {
+    let item = items.find(i => i.id === id);
+    cart.push({ ...item, user: currentUser });
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+
+function renderCart() {
+    cartList.innerHTML = "";
+    cart.filter(c => c.user === currentUser)
+        .forEach(c => {
+            cartList.innerHTML += `
+            <div class="card">
+                <b>${c.name}</b><br>
+                ₹${c.price}
+            </div>`;
+        });
+}
+</script>
+
+</body>
+</html>
